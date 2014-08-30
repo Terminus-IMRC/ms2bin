@@ -28,9 +28,10 @@
 /* return: 0=success, 1=normal failure, 2=library function failure, 3=system call failure */
 int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbose)
 {
-	int i;
+	int i, j;
 	int X;
 	int chars_per_input_line;
+	int buffersize;
 	int fdin, fdout;
 	char *inbuf, *inbuf_orig, *outbuf;
 	ssize_t rc;
@@ -66,76 +67,69 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 		+1*(X*X-1)	/* spaces after each of the numbers except for the last number */	\
 		+1	/* a newline character after the last number */;
 
+	buffersize=((int)BUFSIZ/chars_per_input_line)*chars_per_input_line;
+
 	if(verbose)
 		printf("info: chars_per_input_line=%d\n", chars_per_input_line);
+	
+	if(verbose)
+		printf("info: buffersize=%d\n", buffersize);
 
-	inbuf=(char*)malloc(chars_per_input_line*sizeof(char));
+	inbuf=(char*)malloc(buffersize*sizeof(char));
 	if(inbuf==NULL){
-		fprintf(stderr, "error: failed to malloc inbuf of which size is %d\n", chars_per_input_line*sizeof(char));
+		fprintf(stderr, "error: failed to malloc inbuf of which size is %d\n", buffersize*sizeof(char));
 		return 2;
 	}
 	inbuf_orig=inbuf;
 
-	outbuf=(char*)malloc((X*X)*sizeof(char));
+	outbuf=(char*)malloc(buffersize*sizeof(char));
 	if(outbuf==NULL){
-		fprintf(stderr, "error: failed to malloc outbuf of which size is %d\n", (X*X)*sizeof(char));
+		fprintf(stderr, "error: failed to malloc outbuf of which size is %d\n", buffersize*sizeof(char));
 		return 2;
 	}
 
 	if(verbose)
 		printf("info: initialization finished\n");
 
-	while((rc=read(fdin, inbuf, chars_per_input_line))!=0){
-		if(rc!=chars_per_input_line){
-			if(rc==-1){
-				fprintf(stderr, "read: %s\n", strerror(errno));
-				return 3;
-			}else if(rc<0){
-				fprintf(stderr, "error: read returned negative value, but this is not -1\n");
-				return 2;
-			}else{
-				ssize_t totalread=rc;
-
-				if(verbose)
-					printf("info: read count %d is insufficient; trying to fill the buffer\n", rc);
-				while(totalread!=chars_per_input_line){
-					ssize_t rrc=0;
-					rrc=read(fdin, inbuf+rrc, chars_per_input_line-rrc);
-					if(rc==-1){
-						fprintf(stderr, "read: %s\n", strerror(errno));
-						return 3;
-					}else if(rc<0){
-						fprintf(stderr, "error: read returned negative value, but this is not -1\n");
-						return 2;
-					}
-					totalread+=rrc;
-				}
-			}
+	while((rc=read(fdin, inbuf, buffersize))!=0){
+		if(rc==-1){
+			fprintf(stderr, "read: %s\n", strerror(errno));
+			return 3;
+		}else if(rc<0){
+			fprintf(stderr, "error: read returned negative value, but this is not -1\n");
+			return 2;
+		}else if(rc%chars_per_input_line!=0){
+			fprintf(stderr, "error: read count(%d) is not times of chars_per_input_line(%d)\n", rc, chars_per_input_line);
+			return 1;
 		}
-		inbuf[chars_per_input_line-1]='\0';
-
+		if(verbose&&(rc!=buffersize))
+			printf("warning: rc!=buffersize\n");
 		if(verbose)
 			printf("info: inbuf: %s\n", inbuf);
 
-		for(i=0; i<X*X; i++){
-			long int b;
-			char *inbuf_cur;
+		for(j=0; j<buffersize/chars_per_input_line; j++){
+			for(i=0; i<X*X; i++){
+				long int b;
+				char *inbuf_cur;
 
-			while(*inbuf==' ')
-				inbuf++;
-			inbuf_cur=inbuf;
-			b=strtol(inbuf, &inbuf, 10);
-			if(inbuf_cur==inbuf){
-				fprintf(stderr, "error: invalid input: insufficient number of numbers on a line\n");
-				return 1;
-			}else if((b==LONG_MAX)||(b==LONG_MIN)){
-				fprintf(stderr, "strtol: %s\n", strerror(errno));
-				return 2;
+				while(*inbuf==' ')
+					inbuf++;
+				inbuf_cur=inbuf;
+				b=strtol(inbuf, &inbuf, 10);
+				if(inbuf_cur==inbuf){
+					fprintf(stderr, "error: invalid input: insufficient number of numbers on a line\n");
+					return 1;
+				}else if((b==LONG_MAX)||(b==LONG_MIN)){
+					fprintf(stderr, "strtol: %s\n", strerror(errno));
+					return 2;
+				}
+				outbuf[i+j*(X*X)]=(char)b;
 			}
-			outbuf[i]=(char)b;
+			if(rc/chars_per_input_line==j+1)
+				break;
 		}
 
-		rc=write(fdout, outbuf, X*X);
+		rc=write(fdout, outbuf, (j+1)*(X*X));
 		if(rc==-1){
 			fprintf(stderr, "write: %s\n", strerror(errno));
 			return 3;
