@@ -99,7 +99,7 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 				if(verbose)
 					printf("info: read count %d is insufficient; trying to fill the buffer\n", rc);
 				while(totalread!=chars_per_input_line){
-					ssize_t rrc;
+					ssize_t rrc=0;
 					rrc=read(fdin, inbuf+rrc, chars_per_input_line-rrc);
 					if(rc==-1){
 						fprintf(stderr, "read: %s\n", strerror(errno));
