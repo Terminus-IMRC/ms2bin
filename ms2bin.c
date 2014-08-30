@@ -1,6 +1,6 @@
 /* ms2bin.c -- converts line magic squares to binary format */
 
-#if _FILE_OFFSET_BITS<64
+#if defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS<64
 #undef _FILE_OFFSET_BITS
 #endif /* _FILE_OFFSET_BITS<64 */
 #ifndef _FILE_OFFSET_BITS
