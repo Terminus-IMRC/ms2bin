@@ -1,7 +1,15 @@
 /* ms2bin.c -- converts line magic squares to binary format */
 
+#if _FILE_OFFSET_BITS<64
+#undef _FILE_OFFSET_BITS
+#endif /* _FILE_OFFSET_BITS<64 */
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif /* _FILE_OFFSET_BITS */
+
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif /* _LARGEFILE64_SOURCE */
 
 #include <sys/types.h>
 #include <limits.h>
