@@ -24,16 +24,19 @@
 #include <string.h>
 #include <math.h>
 #include "ms2bin.h"
+#include "libms.h"
 
 /* return: 0=success, 1=normal failure, 2=library function failure, 3=system call failure */
 int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbose)
 {
-	int i, j;
 	int X;
+	int fdin;
 	int chars_per_input_line;
 	int buffersize;
-	int fdin, fdout;
-	char *inbuf, *inbuf_orig, *outbuf;
+	char *inbuf;
+	int *ms;
+	ms_state_t st;
+	ms_bin_seq_write_t mbw;
 	ssize_t rc;
 
 	if(cmd_X<1){
@@ -56,9 +59,6 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 	if(cmd_filename_out==NULL){
 		fprintf(stderr, "error: specified output filename is NULL\n");
 		return 1;
-	}else if((fdout=open(cmd_filename_out, O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH))==-1){
-		fprintf(stderr, "open(\"%s\", O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH): %s\n", cmd_filename_out, strerror(errno));
-		return 3;
 	}
 
 	chars_per_input_line=	\
@@ -66,12 +66,11 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 		+2*(X*X<9?0:X*X-9) /* the numbers that are greater than 9 */	\
 		+1*(X*X-1)	/* spaces after each of the numbers except for the last number */	\
 		+1	/* a newline character after the last number */;
-
-	buffersize=((int)BUFSIZ/chars_per_input_line)*chars_per_input_line;
+	buffersize=chars_per_input_line;
 
 	if(verbose)
 		printf("info: chars_per_input_line=%d\n", chars_per_input_line);
-	
+
 	if(verbose)
 		printf("info: buffersize=%d\n", buffersize);
 
@@ -80,13 +79,10 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 		fprintf(stderr, "error: failed to malloc inbuf of which size is %d\n", buffersize*sizeof(char));
 		return 2;
 	}
-	inbuf_orig=inbuf;
 
-	outbuf=(char*)malloc(buffersize*sizeof(char));
-	if(outbuf==NULL){
-		fprintf(stderr, "error: failed to malloc outbuf of which size is %d\n", buffersize*sizeof(char));
-		return 2;
-	}
+	ms_init(cmd_X, MS_ORIGIN_ONE, &st);
+	ms=ms_alloc(&st);
+	ms_bin_seq_write_open(cmd_filename_out, MS_BIN_SEQ_WRITE_FLAG_CREAT|MS_BIN_SEQ_WRITE_FLAG_TRUNC, &mbw, &st);
 
 	if(verbose)
 		printf("info: initialization finished\n");
@@ -107,44 +103,16 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 		if(verbose)
 			printf("info: inbuf: %s\n", inbuf);
 
-		for(j=0; j<buffersize/chars_per_input_line; j++){
-			for(i=0; i<X*X; i++){
-				long int b;
-				char *inbuf_cur;
-
-				while(*inbuf==' ')
-					inbuf++;
-				inbuf_cur=inbuf;
-				b=strtol(inbuf, &inbuf, 10);
-				if(inbuf_cur==inbuf){
-					fprintf(stderr, "error: invalid input: insufficient number of numbers on a line\n");
-					return 1;
-				}else if((b==LONG_MAX)||(b==LONG_MIN)){
-					fprintf(stderr, "strtol: %s\n", strerror(errno));
-					return 2;
-				}
-				outbuf[i+j*(X*X)]=(char)b;
-			}
-			if(rc/chars_per_input_line==j+1)
-				break;
-		}
-
-		rc=write(fdout, outbuf, (j+1)*(X*X));
-		if(rc==-1){
-			fprintf(stderr, "write: %s\n", strerror(errno));
-			return 3;
-		}else if(rc<0){
-			fprintf(stderr, "error: write returned negative value, but this is not -1\n");
-			return 2;
-		}
-
-		inbuf=inbuf_orig;
+		inbuf[buffersize-1]='\0';
+		str_to_ms(ms, inbuf, &st);
+		ms_bin_seq_write_next(ms, &mbw, &st);
 	}
 
 	close(fdin);
-	close(fdout);
 	free(inbuf);
-	free(outbuf);
+	ms_bin_seq_write_close(&mbw, &st);
+	ms_free(ms, &st);
+	ms_finalize(&st);
 
 	return 0;
 }

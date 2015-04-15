@@ -2,7 +2,7 @@ PROG=ms2bin
 SRCS=ms2bin.c main.c
 TARGETS=all $(PROG) %.o %.d run line clean
 NONEED_DEP_TARGETS+=clean line
-LDLIBS_LOCAL+=-lm
+LDLIBS_LOCAL+=-lm -lms
 
 .PHONY: all
 all: $(PROG)
