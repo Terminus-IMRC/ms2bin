@@ -31,7 +31,7 @@ MAKEFILE_LIST_SANS_DEPS=$(filter-out %.d, $(MAKEFILE_LIST))
 
 CC:=gcc
 HEADERFLAGS:=-I.
-OPTFLAGS:=-pipe -O0 -g
+OPTFLAGS:=-pipe -O2 -g
 WARNFLAGS:=-ansi -pedantic -posix -Wall -Wextra -W -Wundef -Wshadow -Wcast-qual -Winline -Wno-long-long -fsigned-char
 RM:=rm -r -f
 WC:=wc -c -l
