@@ -10,7 +10,7 @@
 
 void usage(char *progname, FILE *outfp)
 {
-	fprintf(outfp, "Usage: %s -x X -i input_file -o output_file [-v] [-h]\n", progname);
+	fprintf(outfp, "Usage: %s -x X -i input_file -o output_file [-H] [-v] [-h]\n", progname);
 	return;
 }
 
@@ -21,9 +21,10 @@ int main(int argc, char *argv[])
 	int X;
 	_Bool X_set=0;
 	_Bool verbose=0;
+	_Bool is_host_width=0;
 	char *filename_in=NULL, *filename_out=NULL;
 
-	while((opt=getopt(argc, argv, "x:i:o:vh"))!=-1){
+	while((opt=getopt(argc, argv, "x:i:o:Hvh"))!=-1){
 		switch(opt){
 			char *endptr;
 
@@ -50,6 +51,10 @@ int main(int argc, char *argv[])
 
 			case 'v':
 				verbose=!0;
+				break;
+
+			case 'H':
+				is_host_width=!0;
 				break;
 
 			case 'h':
@@ -81,7 +86,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	r=ms2bin(X, filename_in, filename_out, verbose);
+	r=ms2bin(X, filename_in, filename_out, is_host_width, verbose);
 
 	if(verbose)
 		fprintf(r==0?stdout:stderr, "ms2bin returned with %d\n", r);

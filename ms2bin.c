@@ -27,7 +27,7 @@
 #include "libms.h"
 
 /* return: 0=success, 1=normal failure, 2=library function failure, 3=system call failure */
-int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbose)
+int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool is_host_width, _Bool verbose)
 {
 	int X;
 	int fdin;
@@ -37,6 +37,7 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 	int *ms;
 	ms_state_t st;
 	ms_bin_seq_write_t mbw;
+	ms_bin_seq_write_flag_t add_flag=MS_BIN_SEQ_WRITE_FLAG_NONE;
 	ssize_t rc;
 
 	if(cmd_X<1){
@@ -80,9 +81,12 @@ int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbo
 		return 2;
 	}
 
+	if(is_host_width)
+		add_flag|=MS_BIN_SEQ_WRITE_FLAG_HOST_WIDTH;
+
 	ms_init(cmd_X, MS_ORIGIN_ONE, &st);
 	ms=ms_alloc(&st);
-	ms_bin_seq_write_open(cmd_filename_out, MS_BIN_SEQ_WRITE_FLAG_CREAT|MS_BIN_SEQ_WRITE_FLAG_TRUNC, &mbw, &st);
+	ms_bin_seq_write_open(cmd_filename_out, MS_BIN_SEQ_WRITE_FLAG_CREAT|MS_BIN_SEQ_WRITE_FLAG_TRUNC|add_flag, &mbw, &st);
 
 	if(verbose)
 		printf("info: initialization finished\n");

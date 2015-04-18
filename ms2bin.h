@@ -3,6 +3,6 @@
 
 #include <sys/types.h>
 
-	int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool verbose);
+	int ms2bin(int cmd_X, char *cmd_filename_in, char *cmd_filename_out, _Bool is_host_width, _Bool verbose);
 
 #endif /* __MS2BIN_H_INCLUDED__ */
